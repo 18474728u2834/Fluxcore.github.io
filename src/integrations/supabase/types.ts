@@ -14,7 +14,192 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      activity_events: {
+        Row: {
+          created_at: string
+          event_data: Json | null
+          event_type: string
+          id: string
+          roblox_user_id: string
+          roblox_username: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_data?: Json | null
+          event_type: string
+          id?: string
+          roblox_user_id: string
+          roblox_username?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          event_data?: Json | null
+          event_type?: string
+          id?: string
+          roblox_user_id?: string
+          roblox_username?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      activity_sessions: {
+        Row: {
+          created_at: string
+          duration_seconds: number | null
+          id: string
+          joined_at: string
+          left_at: string | null
+          roblox_user_id: string
+          roblox_username: string
+          server_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          duration_seconds?: number | null
+          id?: string
+          joined_at?: string
+          left_at?: string | null
+          roblox_user_id: string
+          roblox_username: string
+          server_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          duration_seconds?: number | null
+          id?: string
+          joined_at?: string
+          left_at?: string | null
+          roblox_user_id?: string
+          roblox_username?: string
+          server_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_sessions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      verified_users: {
+        Row: {
+          has_gamepass: boolean
+          id: string
+          roblox_user_id: string
+          roblox_username: string
+          user_id: string
+          verified_at: string
+        }
+        Insert: {
+          has_gamepass?: boolean
+          id?: string
+          roblox_user_id: string
+          roblox_username: string
+          user_id: string
+          verified_at?: string
+        }
+        Update: {
+          has_gamepass?: boolean
+          id?: string
+          roblox_user_id?: string
+          roblox_username?: string
+          user_id?: string
+          verified_at?: string
+        }
+        Relationships: []
+      }
+      workspace_members: {
+        Row: {
+          id: string
+          joined_at: string
+          roblox_user_id: string
+          roblox_username: string
+          role: string
+          updated_at: string
+          user_id: string | null
+          verified: boolean
+          workspace_id: string
+        }
+        Insert: {
+          id?: string
+          joined_at?: string
+          roblox_user_id: string
+          roblox_username: string
+          role?: string
+          updated_at?: string
+          user_id?: string | null
+          verified?: boolean
+          workspace_id: string
+        }
+        Update: {
+          id?: string
+          joined_at?: string
+          roblox_user_id?: string
+          roblox_username?: string
+          role?: string
+          updated_at?: string
+          user_id?: string | null
+          verified?: boolean
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_members_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspaces: {
+        Row: {
+          api_key: string
+          created_at: string
+          gamepass_id: string | null
+          id: string
+          name: string
+          owner_id: string
+          roblox_group_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          api_key?: string
+          created_at?: string
+          gamepass_id?: string | null
+          id?: string
+          name: string
+          owner_id: string
+          roblox_group_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          api_key?: string
+          created_at?: string
+          gamepass_id?: string | null
+          id?: string
+          name?: string
+          owner_id?: string
+          roblox_group_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
