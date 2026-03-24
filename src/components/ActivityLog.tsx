@@ -18,13 +18,13 @@ const actionColors: Record<string, string> = {
 
 export function ActivityLog() {
   return (
-    <div className="glass rounded-lg overflow-hidden">
-      <div className="px-5 py-4 border-b border-border">
+    <div className="glass rounded-xl overflow-hidden">
+      <div className="px-5 py-4 border-b border-border/50">
         <h3 className="font-semibold text-foreground">Activity Log</h3>
       </div>
-      <div className="divide-y divide-border">
+      <div className="divide-y divide-border/40">
         {logs.map((log, i) => (
-          <div key={i} className="px-5 py-3 flex items-center gap-3">
+          <div key={i} className="px-5 py-3 flex items-center gap-3 hover:bg-secondary/30 transition-colors">
             <Clock className="w-4 h-4 text-muted-foreground shrink-0" />
             <div className="flex-1 min-w-0">
               <p className="text-sm text-foreground">

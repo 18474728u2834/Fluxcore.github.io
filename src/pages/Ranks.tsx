@@ -12,15 +12,15 @@ const ranks = [
 
 export default function Ranks() {
   return (
-    <DashboardLayout>
+    <DashboardLayout title="Pastriez Bakery">
       <div className="space-y-6 max-w-3xl">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Ranks</h1>
           <p className="text-muted-foreground text-sm mt-1">Configure group rank hierarchy</p>
         </div>
-        <div className="glass rounded-lg overflow-hidden divide-y divide-border">
+        <div className="glass rounded-xl overflow-hidden divide-y divide-border/40">
           {ranks.map((rank) => (
-            <div key={rank.name} className="px-5 py-4 flex items-center gap-4 hover:bg-muted/30 transition-colors cursor-pointer">
+            <div key={rank.name} className="px-5 py-4 flex items-center gap-4 hover:bg-secondary/30 transition-colors cursor-pointer">
               <Shield className={`w-5 h-5 ${rank.color}`} />
               <div className="flex-1">
                 <p className="text-sm font-medium text-foreground">{rank.name}</p>

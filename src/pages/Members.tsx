@@ -3,7 +3,7 @@ import { MemberList } from "@/components/MemberList";
 
 export default function Members() {
   return (
-    <DashboardLayout>
+    <DashboardLayout title="Pastriez Bakery">
       <div className="space-y-6 max-w-4xl">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Members</h1>
