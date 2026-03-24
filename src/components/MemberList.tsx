@@ -12,20 +12,20 @@ const members = [
 const rankColors: Record<string, string> = {
   Moderator: "bg-primary/10 text-primary",
   Staff: "bg-success/10 text-success",
-  Member: "bg-muted text-muted-foreground",
+  Member: "bg-secondary text-muted-foreground",
   "Trial Mod": "bg-warning/10 text-warning",
 };
 
 export function MemberList() {
   return (
-    <div className="glass rounded-lg overflow-hidden">
-      <div className="px-5 py-4 border-b border-border flex items-center justify-between">
+    <div className="glass rounded-xl overflow-hidden">
+      <div className="px-5 py-4 border-b border-border/50 flex items-center justify-between">
         <h3 className="font-semibold text-foreground">Members</h3>
         <span className="text-xs text-muted-foreground">5 shown</span>
       </div>
-      <div className="divide-y divide-border">
+      <div className="divide-y divide-border/40">
         {members.map((member) => (
-          <div key={member.name} className="px-5 py-3 flex items-center gap-4 hover:bg-muted/30 transition-colors">
+          <div key={member.name} className="px-5 py-3 flex items-center gap-4 hover:bg-secondary/30 transition-colors">
             <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center">
               <Shield className="w-4 h-4 text-muted-foreground" />
             </div>
@@ -38,7 +38,7 @@ export function MemberList() {
               </div>
               <p className="text-xs text-muted-foreground">{member.lastActive}</p>
             </div>
-            <span className={`text-xs px-2 py-1 rounded-full font-medium ${rankColors[member.rank] || ""}`}>
+            <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${rankColors[member.rank] || ""}`}>
               {member.rank}
             </span>
             <Button variant="ghost" size="icon" className="w-8 h-8">
