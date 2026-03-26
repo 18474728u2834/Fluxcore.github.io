@@ -26,9 +26,16 @@ export interface VerificationState {
   hasGamepass: boolean;
   bioMatch: boolean;
   error: string | null;
+  tokenHash: string | null;
+  email: string | null;
 }
 
-export function useVerification(requiredGamepassId: string) {
+interface VerifyOptions {
+  checkGamepass?: boolean;
+  gamepassId?: string;
+}
+
+export function useVerification(options?: VerifyOptions) {
   const [state, setState] = useState<VerificationState>({
     step: "input",
     robloxUsername: "",
@@ -37,6 +44,8 @@ export function useVerification(requiredGamepassId: string) {
     hasGamepass: false,
     bioMatch: false,
     error: null,
+    tokenHash: null,
+    email: null,
   });
 
   const setUsername = useCallback((username: string) => {
@@ -68,7 +77,8 @@ export function useVerification(requiredGamepassId: string) {
         body: {
           username: state.robloxUsername.trim(),
           emojiCode: state.emojiCode,
-          gamepassId: requiredGamepassId,
+          checkGamepass: options?.checkGamepass ?? false,
+          gamepassId: options?.gamepassId ?? null,
         },
       });
 
@@ -79,8 +89,10 @@ export function useVerification(requiredGamepassId: string) {
           ...s,
           step: "success",
           bioMatch: true,
-          hasGamepass: true,
+          hasGamepass: data.hasGamepass ?? false,
           robloxId: data.robloxUserId,
+          tokenHash: data.tokenHash,
+          email: data.email,
         }));
       } else {
         setState((s) => ({
@@ -100,7 +112,7 @@ export function useVerification(requiredGamepassId: string) {
         error: err.message || "Something went wrong. Please try again.",
       }));
     }
-  }, [state.robloxUsername, state.emojiCode, requiredGamepassId]);
+  }, [state.robloxUsername, state.emojiCode, options?.checkGamepass, options?.gamepassId]);
 
   const reset = useCallback(() => {
     setState({
@@ -111,6 +123,8 @@ export function useVerification(requiredGamepassId: string) {
       hasGamepass: false,
       bioMatch: false,
       error: null,
+      tokenHash: null,
+      email: null,
     });
   }, []);
 

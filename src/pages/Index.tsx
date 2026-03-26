@@ -62,7 +62,7 @@ export default function Index() {
           </div>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" onClick={() => navigate("/login")} className="text-muted-foreground">
-              Log in
+              Sign in
             </Button>
             <Button variant="hero" size="sm" onClick={() => navigate("/login")}>
               Get Started
@@ -77,7 +77,7 @@ export default function Index() {
         <div className="relative max-w-4xl mx-auto px-6 text-center">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-border/40 bg-secondary/40 text-xs text-muted-foreground mb-6 opacity-0 animate-fade-up" style={{ animationDelay: "0.1s" }}>
             <Zap className="w-3 h-3 text-primary" />
-            Now with Adonis admin integration
+            Sign in with your Roblox account
           </div>
 
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.1] tracking-tight mb-5 opacity-0 animate-fade-up" style={{ animationDelay: "0.2s" }}>
@@ -149,7 +149,7 @@ export default function Index() {
           <div className="glass rounded-xl p-8 text-center gradient-border max-w-md mx-auto">
             <h3 className="text-xl font-bold text-foreground">Free</h3>
             <p className="text-3xl font-extrabold text-foreground mt-2">$0</p>
-            <p className="text-xs text-muted-foreground mt-1">Everything included, no limits</p>
+            <p className="text-xs text-muted-foreground mt-1">Gamepass required to create workspaces</p>
             <ul className="space-y-2 text-sm text-muted-foreground mt-6 text-left max-w-xs mx-auto">
               <li className="flex items-center gap-2"><ChevronRight className="w-3 h-3 text-primary" /> Unlimited workspaces</li>
               <li className="flex items-center gap-2"><ChevronRight className="w-3 h-3 text-primary" /> Activity tracking & leaderboards</li>

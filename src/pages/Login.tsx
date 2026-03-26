@@ -1,43 +1,52 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/useAuth";
-import { Loader2, Mail, Lock } from "lucide-react";
+import { useVerification } from "@/hooks/useVerification";
+import { Loader2, User, Copy, RefreshCw, ArrowRight, CheckCircle2, XCircle } from "lucide-react";
 
 export default function Login() {
   const navigate = useNavigate();
-  const { signIn, signUp } = useAuth();
-  const [isSignUp, setIsSignUp] = useState(false);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
+  const { user, loading: authLoading, setSessionFromToken } = useAuth();
+  const { state, setUsername, proceedToEmoji, regenerateEmojis, verify, reset } = useVerification();
+  const [copied, setCopied] = useState(false);
+  const [settingSession, setSettingSession] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-    setMessage(null);
-
-    if (isSignUp) {
-      const { error } = await signUp(email, password);
-      if (error) {
-        setError(error.message);
-      } else {
-        setMessage("Check your email to confirm your account, then sign in.");
-      }
-    } else {
-      const { error } = await signIn(email, password);
-      if (error) {
-        setError(error.message);
-      } else {
-        navigate("/workspaces");
-      }
+  useEffect(() => {
+    if (!authLoading && user) {
+      navigate("/workspaces");
     }
-    setLoading(false);
+  }, [user, authLoading]);
+
+  // When verification succeeds, set the session
+  useEffect(() => {
+    if (state.step === "success" && state.tokenHash && state.email && !settingSession) {
+      setSettingSession(true);
+      setSessionFromToken(state.tokenHash, state.email).then(({ error }) => {
+        if (error) {
+          console.error("Session error:", error);
+        } else {
+          navigate("/workspaces");
+        }
+        setSettingSession(false);
+      });
+    }
+  }, [state.step, state.tokenHash, state.email]);
+
+  const copyEmojis = () => {
+    navigator.clipboard.writeText(state.emojiCode);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-6 h-6 text-primary animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center relative overflow-hidden">
@@ -45,63 +54,108 @@ export default function Login() {
       <div className="absolute inset-0 bg-grid opacity-20" />
 
       <div className="relative w-full max-w-md mx-4">
-        <div className="glass rounded-2xl p-8 space-y-8 gradient-border">
-          <div className="text-center space-y-2">
-            <h1 className="text-2xl font-extrabold text-gradient">Fluxcore</h1>
-            <p className="text-sm text-muted-foreground">
-              {isSignUp ? "Create your account" : "Sign in to manage your community"}
-            </p>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
+        {/* Step 1: Username */}
+        {state.step === "input" && (
+          <div className="glass rounded-2xl p-8 space-y-6 gradient-border animate-fade-in">
+            <div className="text-center space-y-2">
+              <h1 className="text-2xl font-extrabold text-gradient">Fluxcore</h1>
+              <p className="text-sm text-muted-foreground">
+                Verify your Roblox account to sign in
+              </p>
+            </div>
+            <div className="space-y-4">
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
-                  type="email"
-                  placeholder="Email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Roblox username"
+                  value={state.robloxUsername}
+                  onChange={(e) => setUsername(e.target.value)}
                   className="pl-10 bg-muted border-border focus:border-primary"
-                  required
+                  onKeyDown={(e) => e.key === "Enter" && proceedToEmoji()}
                 />
               </div>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  type="password"
-                  placeholder="Password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10 bg-muted border-border focus:border-primary"
-                  required
-                  minLength={6}
-                />
+              {state.error && <p className="text-destructive text-sm">{state.error}</p>}
+              <Button onClick={proceedToEmoji} variant="hero" className="w-full h-12">
+                Continue <ArrowRight className="w-4 h-4 ml-1" />
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 2: Emoji */}
+        {state.step === "emoji" && (
+          <div className="glass rounded-2xl p-8 space-y-6 gradient-border animate-fade-in">
+            <div className="text-center space-y-2">
+              <h1 className="text-2xl font-extrabold text-gradient">Fluxcore</h1>
+              <p className="text-sm text-muted-foreground">
+                Paste these emojis at the <strong className="text-foreground">start</strong> of your Roblox bio
+              </p>
+            </div>
+            <div className="bg-muted rounded-xl p-4 space-y-3">
+              <p className="text-xs text-muted-foreground font-mono uppercase tracking-wider">Verification Code</p>
+              <div className="text-2xl leading-relaxed break-all select-all tracking-wide">{state.emojiCode}</div>
+              <div className="flex gap-2">
+                <Button onClick={copyEmojis} variant="secondary" size="sm" className="flex-1">
+                  <Copy className="w-3 h-3 mr-1" /> {copied ? "Copied!" : "Copy"}
+                </Button>
+                <Button onClick={regenerateEmojis} variant="ghost" size="sm">
+                  <RefreshCw className="w-3 h-3" />
+                </Button>
               </div>
             </div>
-
-            {error && <p className="text-destructive text-sm">{error}</p>}
-            {message && <p className="text-primary text-sm">{message}</p>}
-
-            <Button type="submit" variant="hero" className="w-full h-12" disabled={loading}>
-              {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              {isSignUp ? "Create Account" : "Sign In"}
-            </Button>
-          </form>
-
-          <div className="text-center">
-            <button
-              onClick={() => { setIsSignUp(!isSignUp); setError(null); setMessage(null); }}
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              {isSignUp ? "Already have an account? Sign in" : "Don't have an account? Sign up"}
-            </button>
+            <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
+              <li>Copy the emojis above</li>
+              <li>Go to your Roblox profile settings</li>
+              <li>Paste them at the start of your bio</li>
+              <li>Click "Verify" below</li>
+            </ol>
+            <Button onClick={verify} className="w-full h-12" variant="hero">Verify & Sign In</Button>
           </div>
+        )}
 
-          <p className="text-xs text-center text-muted-foreground leading-relaxed">
-            By continuing, you agree to Fluxcore's Terms of Service and Privacy Policy.
-          </p>
-        </div>
+        {/* Step 3: Checking */}
+        {state.step === "checking" && (
+          <div className="glass rounded-2xl p-8 space-y-6 text-center animate-fade-in">
+            <Loader2 className="w-12 h-12 text-primary animate-spin mx-auto" />
+            <div className="space-y-2">
+              <h2 className="text-xl font-bold text-foreground">Verifying...</h2>
+              <p className="text-muted-foreground text-sm">Checking your Roblox bio</p>
+            </div>
+          </div>
+        )}
+
+        {/* Step 4: Success */}
+        {state.step === "success" && (
+          <div className="glass rounded-2xl p-8 space-y-6 text-center animate-fade-in">
+            {settingSession ? (
+              <>
+                <Loader2 className="w-12 h-12 text-primary animate-spin mx-auto" />
+                <p className="text-foreground font-semibold">Signing you in...</p>
+              </>
+            ) : (
+              <>
+                <div className="w-16 h-16 rounded-full bg-success/10 flex items-center justify-center mx-auto">
+                  <CheckCircle2 className="w-8 h-8 text-success" />
+                </div>
+                <h2 className="text-xl font-bold text-foreground">Verified!</h2>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Step 5: Failed */}
+        {state.step === "failed" && (
+          <div className="glass rounded-2xl p-8 space-y-6 text-center animate-fade-in">
+            <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto">
+              <XCircle className="w-8 h-8 text-destructive" />
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-xl font-bold text-foreground">Verification Failed</h2>
+              <p className="text-destructive text-sm">{state.error}</p>
+            </div>
+            <Button onClick={reset} className="w-full" variant="outline">Try Again</Button>
+          </div>
+        )}
 
         <div className="text-center mt-6">
           <button onClick={() => navigate("/")} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
