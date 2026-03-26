@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Users, ArrowRight, Lock, Loader2, LogOut } from "lucide-react";
+import { Plus, Users, ArrowRight, Loader2, LogOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -17,19 +17,34 @@ interface Workspace {
 
 export default function Workspaces() {
   const navigate = useNavigate();
-  const { user, signOut, loading: authLoading } = useAuth();
+  const { user, signOut, loading: authLoading, robloxUsername } = useAuth();
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState("");
   const [groupId, setGroupId] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [hasGamepass, setHasGamepass] = useState(false);
+  const [checkingGamepass, setCheckingGamepass] = useState(true);
 
   useEffect(() => {
     if (authLoading) return;
     if (!user) { navigate("/login"); return; }
     fetchWorkspaces();
+    checkGamepassStatus();
   }, [user, authLoading]);
+
+  const checkGamepassStatus = async () => {
+    if (!user) return;
+    setCheckingGamepass(true);
+    const { data } = await supabase
+      .from("verified_users")
+      .select("has_gamepass")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    setHasGamepass(data?.has_gamepass ?? false);
+    setCheckingGamepass(false);
+  };
 
   const fetchWorkspaces = async () => {
     if (!user) return;
@@ -75,9 +90,13 @@ export default function Workspaces() {
 
   const handleCreate = async () => {
     if (!newName.trim() || !user) return;
+    if (!hasGamepass) {
+      toast.error("You need the Fluxcore gamepass to create a workspace.");
+      return;
+    }
     setCreating(true);
 
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from("workspaces")
       .insert({ name: newName.trim(), owner_id: user.id, roblox_group_id: groupId.trim() || null })
       .select("id")
@@ -108,7 +127,9 @@ export default function Workspaces() {
         <div className="max-w-4xl mx-auto px-6 h-14 flex items-center justify-between">
           <span className="text-lg font-extrabold text-gradient tracking-tight">Fluxcore</span>
           <div className="flex items-center gap-3">
-            <span className="text-sm text-muted-foreground hidden sm:block">{user?.email}</span>
+            {robloxUsername && (
+              <span className="text-sm text-muted-foreground hidden sm:block">{robloxUsername}</span>
+            )}
             <button onClick={handleLogout} className="text-muted-foreground hover:text-foreground transition-colors">
               <LogOut className="w-4 h-4" />
             </button>
@@ -131,7 +152,7 @@ export default function Workspaces() {
             {workspaces.map((ws) => (
               <button
                 key={ws.id}
-                onClick={() => navigate("/dashboard")}
+                onClick={() => navigate(`/w/${ws.id}/dashboard`)}
                 className="glass-hover rounded-xl p-5 text-left group"
               >
                 <div className="flex items-start justify-between mb-3">
@@ -152,37 +173,44 @@ export default function Workspaces() {
                     <Plus className="w-5 h-5 text-primary" />
                   </div>
                   <p className="font-semibold text-foreground text-sm">Create Workspace</p>
-                  <p className="text-xs text-muted-foreground">Free</p>
+                  <p className="text-xs text-muted-foreground">{hasGamepass ? "Gamepass ✓" : "Requires Gamepass"}</p>
                 </button>
               </DialogTrigger>
               <DialogContent className="glass border-border/40">
                 <DialogHeader>
                   <DialogTitle className="text-foreground">Create Workspace</DialogTitle>
                 </DialogHeader>
-                <div className="space-y-4 pt-2">
-                  <div className="space-y-2">
-                    <Label className="text-foreground text-sm">Workspace Name</Label>
-                    <Input
-                      placeholder="e.g. Pastriez Bakery"
-                      value={newName}
-                      onChange={(e) => setNewName(e.target.value)}
-                      className="bg-muted border-border"
-                    />
+                {!hasGamepass ? (
+                  <div className="text-center py-4 space-y-2">
+                    <p className="text-sm text-muted-foreground">You need the Fluxcore gamepass to create workspaces.</p>
+                    <p className="text-xs text-muted-foreground">Purchase the gamepass and re-verify your account.</p>
                   </div>
-                  <div className="space-y-2">
-                    <Label className="text-foreground text-sm">Roblox Group ID <span className="text-muted-foreground">(optional)</span></Label>
-                    <Input
-                      placeholder="e.g. 12345678"
-                      value={groupId}
-                      onChange={(e) => setGroupId(e.target.value)}
-                      className="bg-muted border-border"
-                    />
+                ) : (
+                  <div className="space-y-4 pt-2">
+                    <div className="space-y-2">
+                      <Label className="text-foreground text-sm">Workspace Name</Label>
+                      <Input
+                        placeholder="e.g. Pastriez Bakery"
+                        value={newName}
+                        onChange={(e) => setNewName(e.target.value)}
+                        className="bg-muted border-border"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-foreground text-sm">Roblox Group ID <span className="text-muted-foreground">(optional)</span></Label>
+                      <Input
+                        placeholder="e.g. 12345678"
+                        value={groupId}
+                        onChange={(e) => setGroupId(e.target.value)}
+                        className="bg-muted border-border"
+                      />
+                    </div>
+                    <Button onClick={handleCreate} disabled={creating || !newName.trim()} variant="hero" className="w-full">
+                      {creating && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                      Create
+                    </Button>
                   </div>
-                  <Button onClick={handleCreate} disabled={creating || !newName.trim()} variant="hero" className="w-full">
-                    {creating && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                    Create
-                  </Button>
-                </div>
+                )}
               </DialogContent>
             </Dialog>
           </div>

@@ -6,9 +6,10 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
+  robloxUsername: string | null;
+  robloxUserId: string | null;
   signOut: () => Promise<void>;
+  setSessionFromToken: (tokenHash: string, email: string) => Promise<{ error: Error | null }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -34,13 +35,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({ email, password });
-    return { error: error as Error | null };
-  };
+  const robloxUsername = user?.user_metadata?.roblox_username ?? null;
+  const robloxUserId = user?.user_metadata?.roblox_user_id ?? null;
 
-  const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const setSessionFromToken = async (tokenHash: string, email: string) => {
+    const { error } = await supabase.auth.verifyOtp({
+      token_hash: tokenHash,
+      type: "magiclink",
+    });
     return { error: error as Error | null };
   };
 
@@ -49,7 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signUp, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, robloxUsername, robloxUserId, signOut, setSessionFromToken }}>
       {children}
     </AuthContext.Provider>
   );

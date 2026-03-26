@@ -12,9 +12,9 @@ serve(async (req) => {
   }
 
   try {
-    const { username, emojiCode, gamepassId } = await req.json();
+    const { username, emojiCode, checkGamepass, gamepassId } = await req.json();
 
-    if (!username || !emojiCode || !gamepassId) {
+    if (!username || !emojiCode) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -52,52 +52,101 @@ serve(async (req) => {
     const bio = profileData?.description || "";
     const bioMatch = bio.startsWith(emojiCode);
 
-    // Step 3: Check gamepass ownership
-    let hasGamepass = false;
-    try {
-      const gpRes = await fetch(
-        `https://inventory.roblox.com/v1/users/${robloxUserId}/items/GamePass/${gamepassId}`
-      );
-      const gpData = await gpRes.json();
-      hasGamepass = Array.isArray(gpData?.data) && gpData.data.length > 0;
-    } catch {
-      // If inventory API fails, gamepass check fails
-      hasGamepass = false;
+    if (!bioMatch) {
+      return new Response(JSON.stringify({
+        success: false,
+        bioMatch: false,
+        hasGamepass: false,
+        error: "Bio emoji verification failed. Make sure the emojis are at the very start of your bio.",
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    // Step 4: If both pass, save verification to DB
-    if (bioMatch && hasGamepass) {
-      const authHeader = req.headers.get("Authorization");
-      if (authHeader) {
-        const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-        const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-        const supabase = createClient(supabaseUrl, supabaseKey, {
-          global: { headers: { Authorization: authHeader } },
-        });
-
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          await supabase.from("verified_users").upsert({
-            user_id: user.id,
-            roblox_user_id: robloxUserId,
-            roblox_username: robloxUsername,
-            has_gamepass: true,
-          }, { onConflict: "user_id" });
-        }
+    // Step 3: Optionally check gamepass
+    let hasGamepass = false;
+    if (checkGamepass && gamepassId) {
+      try {
+        const gpRes = await fetch(
+          `https://inventory.roblox.com/v1/users/${robloxUserId}/items/GamePass/${gamepassId}`
+        );
+        const gpData = await gpRes.json();
+        hasGamepass = Array.isArray(gpData?.data) && gpData.data.length > 0;
+      } catch {
+        hasGamepass = false;
       }
     }
 
+    // Step 4: Create or sign in Supabase user
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const adminSupabase = createClient(supabaseUrl, serviceRoleKey);
+
+    const email = `${robloxUserId}@roblox.fluxcore.app`;
+
+    // Check if user already exists in verified_users
+    const { data: existingVerified } = await adminSupabase
+      .from("verified_users")
+      .select("user_id")
+      .eq("roblox_user_id", robloxUserId)
+      .maybeSingle();
+
+    let userId: string;
+
+    if (existingVerified?.user_id) {
+      userId = existingVerified.user_id;
+    } else {
+      // Create a new Supabase user
+      const { data: newUser, error: createError } = await adminSupabase.auth.admin.createUser({
+        email,
+        email_confirm: true,
+        user_metadata: { roblox_user_id: robloxUserId, roblox_username: robloxUsername },
+      });
+
+      if (createError) {
+        // User might already exist in auth but not in verified_users
+        const { data: listData } = await adminSupabase.auth.admin.listUsers();
+        const found = listData?.users?.find((u: any) => u.email === email);
+        if (found) {
+          userId = found.id;
+        } else {
+          throw createError;
+        }
+      } else {
+        userId = newUser.user!.id;
+      }
+
+      // Insert into verified_users
+      await adminSupabase.from("verified_users").upsert({
+        user_id: userId,
+        roblox_user_id: robloxUserId,
+        roblox_username: robloxUsername,
+        has_gamepass: hasGamepass,
+      }, { onConflict: "user_id" });
+    }
+
+    // Generate magic link token for client session
+    const { data: linkData, error: linkError } = await adminSupabase.auth.admin.generateLink({
+      type: "magiclink",
+      email,
+    });
+
+    if (linkError || !linkData) {
+      throw linkError || new Error("Failed to generate session link");
+    }
+
+    // Extract token hash from the link properties
+    const tokenHash = linkData.properties?.hashed_token;
+
     return new Response(JSON.stringify({
-      success: bioMatch && hasGamepass,
-      bioMatch,
+      success: true,
+      bioMatch: true,
       hasGamepass,
       robloxUserId,
       robloxUsername,
-      error: !bioMatch
-        ? "Bio emoji verification failed. Make sure the emojis are at the very start of your bio."
-        : !hasGamepass
-        ? "Gamepass not found. Please purchase the required gamepass."
-        : null,
+      tokenHash,
+      email,
     }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
